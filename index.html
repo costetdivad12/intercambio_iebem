@@ -206,7 +206,7 @@ function toast(msg, error) {
   t.textContent = msg;
   t.className = 'on' + (error ? ' err' : '');
   clearTimeout(toast.t);
-  toast.t = setTimeout(() => (t.className = ''), 3500);
+  toast.t = setTimeout(() => (t.className = ''), error ? 8000 : 3500);
 }
 
 function recordarPin(id, pin) {
@@ -229,10 +229,12 @@ async function api(action, datos) {
     json = demoApi(action, datos || {});
   } else {
     const res = action === 'listar'
-      ? await fetch(API_URL + '?action=listar')
+      // El parámetro t y cache:'no-store' evitan que Safari devuelva un tablero viejo guardado en caché.
+      ? await fetch(API_URL + '?action=listar&t=' + Date.now(), { cache: 'no-store' })
       // Sin cabecera Content-Type a propósito: evita el preflight CORS que Apps Script no soporta.
-      : await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action, ...datos }) });
-    json = await res.json();
+      : await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action, ...datos }), cache: 'no-store' });
+    try { json = await res.json(); }
+    catch (e) { throw new Error('El servidor no respondió como se esperaba (HTTP ' + res.status + ')'); }
   }
   if (!json.ok) throw new Error(json.error || 'Error desconocido');
   return json;
@@ -374,9 +376,9 @@ function seccionDudas(p) {
       const btn = el('button', { type: 'button', class: 'mini', onclick: () => {
         if (!ta.value.trim()) return toast('Escribe una respuesta', true);
         conBoton(btn, async () => {
-          await api('responder', { id: p.id, pin: pinDe(p.id), dudaId: d.id, respuesta: ta.value });
+          const r = await api('responder', { id: p.id, pin: pinDe(p.id), dudaId: d.id, respuesta: ta.value });
           await cargar();
-          toast('Respuesta publicada');
+          toast(r.avisado ? 'Respuesta publicada. Se le avisó por correo.' : 'Respuesta publicada');
         });
       } }, 'Responder');
       caja.append(el('div', { style: 'margin-top:8px' }, ta, el('div', { class: 'acciones', style: 'margin-top:8px' }, btn)));
@@ -389,18 +391,24 @@ function seccionDudas(p) {
   let formulario = null;
   if (!editando) {
     const ta = el('textarea', { id: 'q-nueva', maxlength: 500, required: true, placeholder: '¿Qué talla eres? ¿Prefieres el azul o el negro?…' });
+    const correo = el('input', { id: 'q-correo', type: 'email', maxlength: 120, autocomplete: 'email', placeholder: 'tucorreo@ejemplo.com' });
+    try { correo.value = localStorage.getItem('correo-dudas') || ''; } catch (e) {}
     const btn = el('button', { type: 'submit' }, 'Enviar duda anónima');
     formulario = el('form', { onsubmit: (e) => {
       e.preventDefault();
       conBoton(btn, async () => {
-        await api('preguntar', { id: p.id, pregunta: ta.value });
+        const email = correo.value.trim();
+        await api('preguntar', { id: p.id, pregunta: ta.value, email });
+        try { localStorage.setItem('correo-dudas', email); } catch (e) {}
         await cargar();
         toast(DEMO ? 'Duda enviada (demo: sin correo)' : 'Duda enviada. Le llegará un correo de aviso.');
       });
     } },
       el('label', { for: 'q-nueva' }, 'Escríbele una duda a ' + p.nombre),
       ta,
-      el('div', { class: 'acciones' }, btn, el('span', { class: 'tenue' }, 'No se guarda quién la escribe.')));
+      el('label', { for: 'q-correo' }, 'Tu correo (opcional): para avisarte cuando te responda'),
+      correo,
+      el('div', { class: 'acciones' }, btn, el('span', { class: 'tenue' }, 'Tu nombre y tu correo no se muestran a nadie.')));
   }
 
   return el('section', {},
@@ -450,7 +458,10 @@ function fechaValida(pin) {
 
 $('#btn-nueva').addEventListener('click', () => { $('#form-registro').reset(); $('#dlg-registro').showModal(); });
 document.querySelectorAll('[data-cerrar]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
-document.querySelectorAll('dialog').forEach((d) => d.addEventListener('click', (e) => { if (e.target === d) d.close(); }));
+document.querySelectorAll('dialog').forEach((d) => d.addEventListener('click', (e) => {
+  // Tocar fuera cierra la card, salvo mientras se edita o se registra (para no perder lo escrito).
+  if (e.target === d && d.id === 'dlg-card' && !editando) d.close();
+}));
 
 $('#form-registro').addEventListener('submit', (e) => {
   e.preventDefault();
