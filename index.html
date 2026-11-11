@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intercambio de regalos IEBEM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --papel: #f6efe4;
+    --pino: #1f3d2f;
+    --pino-suave: #2f5a45;
+    --rojo: #b8382f;
+    --rojo-osc: #962b24;
+    --oro: #c9973b;
+    --tinta: #2a2622;
+    --gris: #7a7166;
+    --linea: #e4d9c8;
+    --blanco: #fffdf9;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Inter, system-ui, sans-serif;
+    color: var(--tinta);
+    background: var(--papel);
+    line-height: 1.5;
+  }
+  h1, h2, h3 { font-family: Fraunces, Georgia, serif; margin: 0; line-height: 1.15; }
+
+  header {
+    background: var(--pino);
+    color: var(--papel);
+    padding: 40px 24px 56px;
+    text-align: center;
+    border-bottom: 6px solid var(--oro);
+  }
+  header h1 { font-size: clamp(2rem, 6vw, 3.2rem); }
+  header p { margin: 10px auto 22px; max-width: 520px; opacity: .85; }
+
+  button, .btn {
+    font: inherit; font-weight: 600; cursor: pointer;
+    border: 0; border-radius: 999px; padding: 10px 20px;
+    background: var(--rojo); color: #fff;
+    transition: background .15s, transform .05s;
+  }
+  button:hover { background: var(--rojo-osc); }
+  button:active { transform: translateY(1px); }
+  button:disabled { opacity: .6; cursor: wait; }
+  button.sec { background: transparent; color: var(--pino); border: 1.5px solid var(--pino); }
+  button.sec:hover { background: rgba(31,61,47,.08); }
+  button.mini { padding: 4px 12px; font-size: .85rem; }
+  button.x { background: none; color: var(--gris); padding: 4px 10px; font-size: 1.3rem; line-height: 1; }
+  button.x:hover { background: var(--linea); }
+
+  #demo {
+    background: var(--oro); color: #2a1e05; text-align: center;
+    padding: 8px 16px; font-size: .9rem; font-weight: 500;
+  }
+
+  main { max-width: 1100px; margin: -28px auto 60px; padding: 0 20px; }
+  .tablero {
+    display: grid; gap: 22px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+  .vacio { grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--gris);
+    background: var(--blanco); border-radius: 14px; border: 1.5px dashed var(--linea); }
+
+  /* Card tipo etiqueta de regalo */
+  .card {
+    position: relative; text-align: left; width: 100%;
+    background: var(--blanco); color: var(--tinta);
+    border: 1px solid var(--linea); border-radius: 14px;
+    padding: 38px 20px 18px; font-weight: 400;
+    box-shadow: 0 2px 0 var(--linea), 0 10px 24px -14px rgba(42,38,34,.5);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .card:hover { background: var(--blanco); transform: translateY(-4px) rotate(-.6deg);
+    box-shadow: 0 2px 0 var(--linea), 0 18px 30px -14px rgba(42,38,34,.55); }
+  .card::before { /* ojal */
+    content: ""; position: absolute; top: 12px; left: 50%; translate: -50% 0;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--papel); border: 2px solid var(--oro);
+  }
+  .card h3 { font-size: 1.35rem; margin-bottom: 6px; overflow-wrap: anywhere; }
+  .card .nota { color: var(--gris); font-size: .9rem; min-height: 2.7em;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .chip { font-size: .78rem; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+    background: #e9f0ea; color: var(--pino); }
+  .chip.alerta { background: #f8e3e0; color: var(--rojo-osc); }
+
+  dialog {
+    border: 0; border-radius: 18px; padding: 0; width: min(620px, 94vw);
+    max-height: 90vh; background: var(--blanco); color: var(--tinta);
+    box-shadow: 0 30px 80px -20px rgba(0,0,0,.5);
+  }
+  dialog::backdrop { background: rgba(31,61,47,.55); backdrop-filter: blur(2px); }
+  .dlg-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+    padding: 22px 24px 14px; border-bottom: 1px solid var(--linea);
+    position: sticky; top: 0; background: var(--blanco); z-index: 1; }
+  .dlg-head h2 { font-size: 1.7rem; overflow-wrap: anywhere; }
+  .dlg-body { padding: 18px 24px 26px; }
+  section { margin-bottom: 26px; }
+  section > h3 { font-size: 1.05rem; color: var(--pino); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px; }
+  .tenue { color: var(--gris); font-size: .92rem; }
+  .pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+
+  label { display: block; font-size: .85rem; font-weight: 600; margin: 12px 0 4px; }
+  input, textarea {
+    width: 100%; font: inherit; color: inherit; padding: 9px 12px;
+    border: 1.5px solid var(--linea); border-radius: 10px; background: #fff;
+  }
+  textarea { resize: vertical; min-height: 76px; }
+  input:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--oro); outline-offset: 2px; }
+  .fila { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .fila input:first-child { flex: 0 0 36%; }
+  .acciones { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+
+  ul.links { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  ul.links a {
+    display: block; padding: 10px 14px; border-radius: 10px; text-decoration: none;
+    background: #e9f0ea; color: var(--pino); font-weight: 600; overflow-wrap: anywhere;
+  }
+  ul.links a:hover { background: #dbe7dd; }
+  ul.links small { display: block; font-weight: 400; color: var(--gris); font-size: .78rem; }
+
+  .duda { border: 1px solid var(--linea); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+  .duda .q { font-weight: 500; }
+  .duda .q::before { content: "Amigo secreto · "; color: var(--rojo); font-weight: 600; font-size: .8rem; }
+  .duda .a { margin-top: 8px; padding: 8px 12px; background: var(--papel); border-radius: 8px; }
+  .duda .a::before { content: "Respuesta · "; color: var(--pino); font-weight: 600; font-size: .8rem; }
+  .duda time { float: right; color: var(--gris); font-size: .75rem; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 24px; translate: -50% 20px;
+    background: var(--tinta); color: #fff; padding: 10px 18px; border-radius: 999px;
+    opacity: 0; pointer-events: none; transition: .25s; max-width: 90vw; z-index: 99; font-size: .92rem;
+  }
+  #toast.on { opacity: 1; translate: -50% 0; }
+  #toast.err { background: var(--rojo-osc); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Intercambio de regalos</h1>
+  <p>Crea tu card, deja tus sugerencias y responde las dudas de tu amigo secreto.</p>
+  <button id="btn-nueva">+ Agregar mi card</button>
+</header>
+<div id="demo" hidden>Modo demo: los datos solo se guardan en este navegador y no se envían correos. Configura API_URL para activarlo. (PIN de las cards de ejemplo: 01011990)</div>
+
+<main><div id="tablero" class="tablero"><p class="vacio">Cargando tablero…</p></div></main>
+
+<dialog id="dlg-registro">
+  <form id="form-registro">
+    <div class="dlg-head"><h2>Mi card</h2><button type="button" class="x" data-cerrar aria-label="Cerrar">×</button></div>
+    <div class="dlg-body">
+      <label for="r-nombre">Nombre</label>
+      <input id="r-nombre" required maxlength="60" autocomplete="name">
+      <label for="r-email">Correo (privado, solo para avisarte de dudas)</label>
+      <input id="r-email" type="email" required maxlength="120" autocomplete="email">
+      <label for="r-pin">PIN: tu fecha de nacimiento en formato ddmmaaaa (para editar tu card)</label>
+      <input id="r-pin" required inputmode="numeric" pattern="\d{8}" maxlength="8" autocomplete="off" placeholder="ddmmaaaa" title="8 dígitos: ddmmaaaa, por ejemplo 05031995">
+      <div class="acciones"><button type="submit">Crear card</button></div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-card"><div id="card-cont"></div></dialog>
+<div id="toast" role="status"></div>
+
+<script>
+/* ============ CONFIGURACIÓN ============ */
+// Pega aquí la URL /exec de tu implementación de Apps Script. Vacío = modo demo.
+const API_URL = 'https://script.google.com/macros/s/AKfycbw6nuoawT6pmzTkKo-JpN1o_4eEIqfk2WIYeWAYt0mFzobKMvSld7u6836pmbVDuInL/exec';
+/* ======================================= */
+
+const DEMO = !API_URL;
+let participantes = [];
+let actual = null;      // id de la card abierta
+let editando = false;
+let borrador = null;    // { notas, links } mientras se edita
+let pidiendoPin = false;
+const pins = {};
+
+const $ = (s) => document.querySelector(s);
+
+function el(tag, props, ...hijos) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (k === 'class') n.className = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) n.setAttribute(k, v === true ? '' : v);
+  }
+  for (const h of hijos.flat()) if (h != null && h !== false) n.append(h);
+  return n;
+}
+
+function toast(msg, error) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'on' + (error ? ' err' : '');
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => (t.className = ''), 3500);
+}
+
+function recordarPin(id, pin) {
+  pins[id] = pin;
+  try { sessionStorage.setItem('pin:' + id, pin); } catch (e) {}
+}
+function pinDe(id) {
+  if (pins[id]) return pins[id];
+  try { return sessionStorage.getItem('pin:' + id); } catch (e) { return null; }
+}
+function olvidarPin(id) {
+  delete pins[id];
+  try { sessionStorage.removeItem('pin:' + id); } catch (e) {}
+}
+
+/* ---------- API ---------- */
+async function api(action, datos) {
+  let json;
+  if (DEMO) {
+    json = demoApi(action, datos || {});
+  } else {
+    const res = action === 'listar'
+      ? await fetch(API_URL + '?action=listar')
+      // Sin cabecera Content-Type a propósito: evita el preflight CORS que Apps Script no soporta.
+      : await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action, ...datos }) });
+    json = await res.json();
+  }
+  if (!json.ok) throw new Error(json.error || 'Error desconocido');
+  return json;
+}
+
+// Ejecuta una acción mostrando estado de carga en el botón y errores en un toast.
+async function conBoton(btn, fn) {
+  const txt = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Un momento…';
+  try { await fn(); return true; }
+  catch (e) { toast(e.message, true); return false; }
+  finally { btn.disabled = false; btn.textContent = txt; }
+}
+
+async function cargar() {
+  const r = await api('listar');
+  participantes = r.participantes;
+  pintarTablero();
+  if (actual && $('#dlg-card').open) pintarCard();
+}
+
+/* ---------- Tablero ---------- */
+function pintarTablero() {
+  const t = $('#tablero');
+  if (!participantes.length) {
+    t.replaceChildren(el('p', { class: 'vacio' }, 'Aún no hay cards. ¡Sé la primera persona en agregar la suya!'));
+    return;
+  }
+  t.replaceChildren(...participantes.map((p) => {
+    const sinResp = p.dudas.filter((d) => !d.respuesta).length;
+    return el('button', { class: 'card', onclick: () => abrir(p.id) },
+      el('h3', {}, p.nombre),
+      el('div', { class: 'nota' }, p.notas || 'Sin notas todavía'),
+      el('div', { class: 'chips' },
+        el('span', { class: 'chip' }, p.links.length + (p.links.length === 1 ? ' sugerencia' : ' sugerencias')),
+        p.dudas.length ? el('span', { class: 'chip' + (sinResp ? ' alerta' : '') },
+          sinResp ? sinResp + ' sin responder' : p.dudas.length + (p.dudas.length === 1 ? ' duda' : ' dudas')) : null
+      )
+    );
+  }));
+}
+
+/* ---------- Detalle de card ---------- */
+function abrir(id) {
+  actual = id; editando = false; pidiendoPin = false; borrador = null;
+  pintarCard();
+  $('#dlg-card').showModal();
+}
+
+function fecha(iso) {
+  const d = new Date(iso);
+  return isNaN(d) ? '' : d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+}
+
+function dominio(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return url; }
+}
+
+function pintarCard() {
+  const p = participantes.find((x) => x.id === actual);
+  if (!p) { $('#dlg-card').close(); return; }
+
+  const cont = $('#card-cont');
+  cont.replaceChildren(
+    el('div', { class: 'dlg-head' },
+      el('h2', {}, p.nombre),
+      el('button', { class: 'x', 'aria-label': 'Cerrar', onclick: () => $('#dlg-card').close() }, '×')),
+    el('div', { class: 'dlg-body' },
+      editando ? seccionEditar(p) : [seccionNotas(p), seccionLinks(p)],
+      seccionDudas(p),
+      pieCard(p))
+  );
+}
+
+function seccionNotas(p) {
+  return el('section', {},
+    el('h3', {}, 'Notas'),
+    p.notas ? el('p', { class: 'pre' }, p.notas) : el('p', { class: 'tenue' }, 'Aún no ha escrito notas (tallas, colores, gustos…).'));
+}
+
+function seccionLinks(p) {
+  return el('section', {},
+    el('h3', {}, 'Sugerencias de regalo'),
+    p.links.length
+      ? el('ul', { class: 'links' }, p.links.map((l) =>
+          el('li', {}, el('a', { href: /^https?:\/\//i.test(l.url) ? l.url : '#', target: '_blank', rel: 'noopener noreferrer' },
+            l.titulo || dominio(l.url), el('small', {}, dominio(l.url))))))
+      : el('p', { class: 'tenue' }, 'Aún no hay links de sugerencias.'));
+}
+
+function seccionEditar(p) {
+  if (!borrador) borrador = { notas: p.notas, links: p.links.map((l) => ({ ...l })) };
+  const lista = el('div', {});
+  const pintarLinks = () => lista.replaceChildren(...borrador.links.map((l, i) =>
+    el('div', { class: 'fila' },
+      el('input', { placeholder: 'Título', maxlength: 80, value: l.titulo, 'aria-label': 'Título del link', oninput: (e) => (l.titulo = e.target.value) }),
+      el('input', { placeholder: 'https://…', maxlength: 500, value: l.url, 'aria-label': 'URL', oninput: (e) => (l.url = e.target.value) }),
+      el('button', { type: 'button', class: 'x', 'aria-label': 'Quitar link', onclick: () => { borrador.links.splice(i, 1); pintarLinks(); } }, '×'))));
+  pintarLinks();
+
+  const notas = el('textarea', { id: 'e-notas', maxlength: 1000, placeholder: 'Tallas, colores, cosas que ya tienes, lo que no te gusta…', oninput: (e) => (borrador.notas = e.target.value) });
+  notas.value = borrador.notas;
+
+  const guardar = el('button', { type: 'button', onclick: async () => {
+    const links = borrador.links
+      .map((l) => ({ titulo: l.titulo.trim(), url: l.url.trim() }))
+      .filter((l) => l.url)
+      .map((l) => ({ ...l, url: /^https?:\/\//i.test(l.url) ? l.url : 'https://' + l.url }));
+    const ok = await conBoton(guardar, async () => {
+      await api('guardar', { id: p.id, pin: pinDe(p.id), notas: borrador.notas, links });
+      editando = false; borrador = null;
+      await cargar();
+      toast('Card guardada');
+    });
+    if (!ok && !pinDe(p.id)) { editando = false; pintarCard(); }
+  } }, 'Guardar cambios');
+
+  return el('section', {},
+    el('h3', {}, 'Editar mi card'),
+    el('label', { for: 'e-notas' }, 'Notas'), notas,
+    el('label', {}, 'Links de sugerencias'), lista,
+    el('button', { type: 'button', class: 'sec mini', onclick: () => {
+      if (borrador.links.length >= 15) return toast('Máximo 15 links', true);
+      borrador.links.push({ titulo: '', url: '' }); pintarLinks();
+    } }, '+ Agregar link'),
+    el('div', { class: 'acciones' }, guardar,
+      el('button', { type: 'button', class: 'sec', onclick: () => { editando = false; borrador = null; pintarCard(); } }, 'Cancelar')));
+}
+
+function seccionDudas(p) {
+  const items = p.dudas.map((d) => {
+    const caja = el('div', { class: 'duda' },
+      el('time', {}, fecha(d.fecha)),
+      el('div', { class: 'q pre' }, d.pregunta));
+    if (d.respuesta) {
+      caja.append(el('div', { class: 'a pre' }, d.respuesta));
+    } else if (editando) {
+      const ta = el('textarea', { maxlength: 500, placeholder: 'Escribe tu respuesta…', 'aria-label': 'Respuesta' });
+      const btn = el('button', { type: 'button', class: 'mini', onclick: () => {
+        if (!ta.value.trim()) return toast('Escribe una respuesta', true);
+        conBoton(btn, async () => {
+          await api('responder', { id: p.id, pin: pinDe(p.id), dudaId: d.id, respuesta: ta.value });
+          await cargar();
+          toast('Respuesta publicada');
+        });
+      } }, 'Responder');
+      caja.append(el('div', { style: 'margin-top:8px' }, ta, el('div', { class: 'acciones', style: 'margin-top:8px' }, btn)));
+    } else {
+      caja.append(el('div', { class: 'tenue', style: 'margin-top:6px' }, 'Sin respuesta todavía.'));
+    }
+    return caja;
+  });
+
+  let formulario = null;
+  if (!editando) {
+    const ta = el('textarea', { id: 'q-nueva', maxlength: 500, required: true, placeholder: '¿Qué talla eres? ¿Prefieres el azul o el negro?…' });
+    const btn = el('button', { type: 'submit' }, 'Enviar duda anónima');
+    formulario = el('form', { onsubmit: (e) => {
+      e.preventDefault();
+      conBoton(btn, async () => {
+        await api('preguntar', { id: p.id, pregunta: ta.value });
+        await cargar();
+        toast(DEMO ? 'Duda enviada (demo: sin correo)' : 'Duda enviada. Le llegará un correo de aviso.');
+      });
+    } },
+      el('label', { for: 'q-nueva' }, 'Escríbele una duda a ' + p.nombre),
+      ta,
+      el('div', { class: 'acciones' }, btn, el('span', { class: 'tenue' }, 'No se guarda quién la escribe.')));
+  }
+
+  return el('section', {},
+    el('h3', {}, 'Dudas del amigo secreto'),
+    items.length ? items : el('p', { class: 'tenue' }, 'Todavía no hay dudas.'),
+    formulario);
+}
+
+function pieCard(p) {
+  if (editando) return null;
+  if (pidiendoPin) {
+    const input = el('input', { id: 'pin-in', inputmode: 'numeric', maxlength: 8, required: true, autocomplete: 'off', placeholder: 'ddmmaaaa', style: 'max-width:160px' });
+    const btn = el('button', { type: 'submit' }, 'Entrar');
+    setTimeout(() => input.focus());
+    return el('form', { onsubmit: (e) => {
+      e.preventDefault();
+      conBoton(btn, async () => {
+        await api('verificar', { id: p.id, pin: input.value });
+        recordarPin(p.id, input.value);
+        pidiendoPin = false; editando = true;
+        pintarCard();
+      });
+    } },
+      el('label', { for: 'pin-in' }, 'PIN de ' + p.nombre + ' (fecha de nacimiento, ddmmaaaa)'),
+      el('div', { class: 'acciones', style: 'margin-top:0' }, input, btn,
+        el('button', { type: 'button', class: 'sec', onclick: () => { pidiendoPin = false; pintarCard(); } }, 'Cancelar')));
+  }
+  return el('div', { class: 'acciones' },
+    el('button', { class: 'sec', onclick: async (e) => {
+      const pin = pinDe(p.id);
+      if (!pin) { pidiendoPin = true; return pintarCard(); }
+      const ok = await conBoton(e.target, () => api('verificar', { id: p.id, pin }));
+      if (ok) editando = true; else { olvidarPin(p.id); pidiendoPin = true; }
+      pintarCard();
+    } }, 'Es mi card: editar y responder'));
+}
+
+/* ---------- Registro ---------- */
+// ddmmaaaa: 8 dígitos que formen una fecha real y no futura.
+function fechaValida(pin) {
+  const m = /^(\d{2})(\d{2})(\d{4})$/.exec(String(pin || ''));
+  if (!m) return false;
+  const d = +m[1], mes = +m[2], a = +m[3];
+  const f = new Date(a, mes - 1, d);
+  return a >= 1900 && f <= new Date() && f.getFullYear() === a && f.getMonth() === mes - 1 && f.getDate() === d;
+}
+
+$('#btn-nueva').addEventListener('click', () => { $('#form-registro').reset(); $('#dlg-registro').showModal(); });
+document.querySelectorAll('[data-cerrar]').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
+document.querySelectorAll('dialog').forEach((d) => d.addEventListener('click', (e) => { if (e.target === d) d.close(); }));
+
+$('#form-registro').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('[type=submit]');
+  const pin = $('#r-pin').value;
+  if (!fechaValida(pin)) return toast('El PIN debe ser tu fecha de nacimiento: ddmmaaaa (ej. 05031995)', true);
+  conBoton(btn, async () => {
+    const r = await api('registrar', { nombre: $('#r-nombre').value, email: $('#r-email').value, pin });
+    recordarPin(r.id, pin);
+    $('#dlg-registro').close();
+    await cargar();
+    actual = r.id; editando = true; pidiendoPin = false; borrador = null;
+    pintarCard();
+    $('#dlg-card').showModal();
+    toast('¡Card creada! Agrega tus sugerencias.');
+  });
+});
+
+/* ---------- Modo demo (localStorage) ---------- */
+let demoMem = null;
+function demoDb() {
+  if (demoMem) return demoMem;
+  try { demoMem = JSON.parse(localStorage.getItem('intercambio-demo')); } catch (e) {}
+  if (!demoMem) {
+    const hoy = new Date().toISOString();
+    demoMem = { participantes: [
+      { id: 'd1', nombre: 'Mariana (ejemplo)', email: 'a@demo.mx', pin: '01011990',
+        notas: 'Talla M. Me encantan las plantas y el café de especialidad. Nada con olor a vainilla.',
+        links: [{ titulo: 'Prensa francesa', url: 'https://example.com/prensa' }, { titulo: 'Maceta de barro', url: 'https://example.com/maceta' }],
+        dudas: [{ id: 'q1', pregunta: '¿La prensa la prefieres de vidrio o de acero?', respuesta: 'De acero, se me rompen todas.', fecha: hoy }] },
+      { id: 'd2', nombre: 'Beto (ejemplo)', email: 'b@demo.mx', pin: '01011990',
+        notas: 'Calzo del 27. Leo ciencia ficción.', links: [{ titulo: '', url: 'https://example.com/libro' }],
+        dudas: [{ id: 'q2', pregunta: '¿Ya tienes la trilogía completa?', respuesta: '', fecha: hoy }] },
+      { id: 'd3', nombre: 'Lupita (ejemplo)', email: 'c@demo.mx', pin: '01011990', notas: '', links: [], dudas: [] }
+    ] };
+  }
+  return demoMem;
+}
+function demoApi(action, d) {
+  const db = demoDb();
+  const uid = () => 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  try {
+    const p = d.id ? db.participantes.find((x) => x.id === d.id) : null;
+    const auth = () => { if (!p) throw new Error('No se encontró la card'); if (p.pin !== d.pin) throw new Error('PIN incorrecto'); };
+    let extra = {};
+    if (action === 'listar') {
+      extra.participantes = db.participantes.map(({ email, pin, ...resto }) => JSON.parse(JSON.stringify(resto)));
+    } else if (action === 'registrar') {
+      if (!d.nombre.trim()) throw new Error('El nombre no puede ir vacío');
+      if (!fechaValida(d.pin)) throw new Error('El PIN debe ser tu fecha de nacimiento en formato ddmmaaaa');
+      if (db.participantes.some((x) => x.email === d.email.trim().toLowerCase())) throw new Error('Ese correo ya tiene una card');
+      extra.id = uid();
+      db.participantes.push({ id: extra.id, nombre: d.nombre.trim(), email: d.email.trim().toLowerCase(), pin: d.pin, notas: '', links: [], dudas: [] });
+    } else if (action === 'verificar') { auth(); }
+    else if (action === 'guardar') { auth(); p.notas = d.notas.trim(); p.links = d.links; }
+    else if (action === 'preguntar') {
+      if (!p) throw new Error('No se encontró la card');
+      p.dudas.push({ id: uid(), pregunta: d.pregunta.trim(), respuesta: '', fecha: new Date().toISOString() });
+    } else if (action === 'responder') { auth(); p.dudas.find((x) => x.id === d.dudaId).respuesta = d.respuesta.trim(); }
+    try { localStorage.setItem('intercambio-demo', JSON.stringify(db)); } catch (e) {}
+    return { ok: true, ...extra };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+/* ---------- Inicio ---------- */
+$('#demo').hidden = !DEMO;
+cargar().catch((e) => {
+  $('#tablero').replaceChildren(el('p', { class: 'vacio' }, 'No se pudo cargar el tablero: ' + e.message));
+});
+</script>
+</body>
+</html>
